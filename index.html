@@ -566,7 +566,7 @@ async function generatePDF(){
 
       drawHeader();
       doc.setTextColor(33,0,0);
-      doc.setFontSize(10);
+      doc.setFontSize(14);
       doc.setFont('helvetica','normal');
       const introText = 'Veja como o seu tempo está distribuído entre as três esferas da Tríade do Tempo.';
       doc.text(introText, marginX, y, {maxWidth: pageW - marginX*2});
