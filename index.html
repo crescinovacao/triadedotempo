@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tríade do Tempo</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --accent:#007BEA;
+    --accent-dark:#001B71;
+    --accent-light:#B3DFFF;
+    --text:#210000;
+    --text-light:#210000;
+    --border:#e0e0e0;
+    --bg:#ffffff;
+    --bg-soft:#f4f8fe;
+    --selected-bg:#ebf5ff;
+    --selected-border:#007BEA;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    font-family:'Aptos','Segoe UI',sans-serif;
+    color:var(--text);
+  }
+  .screen{
+    max-width:680px;
+    margin:0 auto;
+    padding:48px 24px 80px;
+    display:none;
+    animation:fadeIn 0.35s ease;
+  }
+  .screen.active{display:block;}
+  @keyframes fadeIn{
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
+  }
+  @media (max-width:480px){
+    .screen{padding:36px 16px 80px;}
+    .option-item{padding:12px 14px;}
+    .spheres-row{gap:10px;}
+    .sphere-label{font-size:14px;}
+  }
+
+  .img-placeholder{
+    width:100%;
+    margin-bottom:28px;
+    overflow:hidden;
+  }
+  .img-placeholder.empty{
+    aspect-ratio:16/9;
+    background:var(--bg-soft);
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:2px dashed var(--border);
+    color:var(--text-light);
+    font-size:14px;
+  }
+
+  h1.cover-title{
+    font-family:'Raleway',sans-serif;
+    font-weight:800;
+    font-size:clamp(22px,5vw,32px);
+    color:var(--accent);
+    margin:0 0 16px;
+  }
+  h2.section-title{
+    font-family:'Raleway',sans-serif;
+    font-weight:700;
+    color:var(--accent);
+    font-size:clamp(18px,4vw,22px);
+    margin:0 0 16px;
+  }
+  p{
+    font-size:clamp(14px,2.3vw,16px);
+    line-height:1.6;
+    color:var(--text);
+  }
+  .text-light{color:var(--text-light);}
+
+  .progress-bar-wrap{
+    position:fixed;
+    top:0; left:0; right:0;
+    height:4px;
+    background:var(--border);
+    z-index:100;
+    display:none;
+  }
+  .progress-bar-fill{
+    height:100%;
+    background:var(--accent);
+    transition:width 0.4s ease;
+    width:0%;
+  }
+
+  .question-label{
+    font-size:13px;
+    color:var(--text-light);
+    margin-bottom:8px;
+  }
+  .question-text{
+    font-family:'Raleway',sans-serif;
+    font-weight:700;
+    font-size:clamp(16px,3vw,20px);
+    color:var(--text);
+    margin-bottom:24px;
+  }
+
+  .option-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 16px;
+    border:1.5px solid var(--border);
+    border-radius:12px;
+    cursor:pointer;
+    background:#fff;
+    width:100%;
+    font-family:inherit;
+    font-size:15px;
+    text-align:left;
+    transition:all 0.2s ease;
+    margin-bottom:10px;
+  }
+  .option-item.selected{
+    border-color:var(--selected-border);
+    background:var(--selected-bg);
+  }
+  .option-item:hover:not(.selected){
+    border-color:#ccc;
+    background:var(--bg-soft);
+  }
+  .option-radio{
+    width:20px; height:20px;
+    border-radius:50%;
+    border:2px solid var(--border);
+    flex-shrink:0;
+    position:relative;
+  }
+  .option-item.selected .option-radio{
+    border-color:var(--accent);
+  }
+  .option-item.selected .option-radio::after{
+    content:'';
+    position:absolute;
+    top:3px; left:3px;
+    width:10px; height:10px;
+    border-radius:50%;
+    background:var(--accent);
+  }
+
+  .nav-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:28px;
+  }
+  .btn-primary{
+    background:var(--accent);
+    color:#fff;
+    font-family:'Raleway',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    padding:13px 28px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .btn-primary:hover{background:#0063c5;}
+  .btn-primary:disabled{background:#ccc; cursor:not-allowed;}
+  .btn-back{
+    background:none;
+    border:none;
+    color:var(--text-light);
+    font-family:'Aptos','Segoe UI',sans-serif;
+    font-size:14px;
+    cursor:pointer;
+    padding:13px 8px;
+  }
+  .btn-restart{
+    background:none;
+    border:none;
+    color:var(--text-light);
+    font-size:14px;
+    cursor:pointer;
+    display:block;
+    margin:0 auto;
+    text-decoration:underline;
+  }
+
+  .spheres-row{
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap:24px;
+    padding:16px 0 24px;
+    flex-wrap:wrap;
+  }
+  .sphere-item{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+  .sphere-circle{
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-family:'Raleway',sans-serif;
+    font-weight:800;
+    transition:width 0.6s ease, height 0.6s ease;
+  }
+  .sphere-label{
+    font-family:'Raleway',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    text-align:center;
+  }
+
+  .result-card{
+    border:1.5px solid var(--border);
+    border-left-width:5px;
+    border-radius:12px;
+    padding:18px 20px;
+    margin-bottom:16px;
+  }
+  .result-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:6px;
+  }
+  .result-rank{
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+  }
+  .result-pct{
+    font-family:'Raleway',sans-serif;
+    font-weight:800;
+    font-size:20px;
+  }
+  .result-name{
+    font-family:'Raleway',sans-serif;
+    font-weight:700;
+    font-size:17px;
+    margin-bottom:8px;
+  }
+  .result-desc{
+    font-size:14px;
+    color:#210000;
+    line-height:1.6;
+    margin:0;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar-wrap" id="progressBarWrap">
+  <div class="progress-bar-fill" id="progressBarFill"></div>
+</div>
+
+<!-- CAPA -->
+<div class="screen active" id="screen-cover">
+  <div class="img-placeholder">
+    <img src="https://i.imgur.com/Mji7Abo.png" alt="Capa do teste Tríade do Tempo" style="display:block; width:100%; height:auto; border-radius:0;">
+  </div>
+  <h1 class="cover-title">Tríade do Tempo</h1>
+  <p>Como você distribui seu tempo entre o que é urgente, o que é realmente importante e o que é apenas circunstancial? Este teste ajuda a identificar qual esfera domina a sua rotina hoje, para que você possa repensar suas prioridades.</p>
+  <div class="nav-row" style="justify-content:flex-end;">
+    <button class="btn-primary" onclick="goToScreen('screen-instructions')">Avançar →</button>
+  </div>
+</div>
+
+<!-- INSTRUÇÕES -->
+<div class="screen" id="screen-instructions">
+  <div class="img-placeholder">
+    <img src="https://i.imgur.com/GQ37w78.png" alt="Como responder" style="display:block; width:100%; height:auto; border-radius:0;">
+  </div>
+  <h2 class="section-title">Como responder</h2>
+  <p>Você verá 18 afirmações, uma de cada vez. Para cada uma, escolha a opção que melhor representa a frequência com que aquilo acontece com você:</p>
+  <p><strong>Nunca</strong> · <strong>Raramente</strong> · <strong>Às vezes</strong> · <strong>Quase sempre</strong> · <strong>Sempre</strong></p>
+  <p class="text-light">Responda com sinceridade, pensando na sua rotina real dos últimos meses, sem se preocupar em "acertar" uma resposta.</p>
+  <div class="nav-row">
+    <button class="btn-back" onclick="goToScreen('screen-cover')">← Voltar</button>
+    <button class="btn-primary" onclick="startTest()">Iniciar Teste →</button>
+  </div>
+</div>
+
+<!-- PERGUNTA (template único, conteúdo trocado via JS) -->
+<div class="screen" id="screen-question">
+  <div class="question-label" id="questionLabel">Pergunta 1 de 18</div>
+  <div class="question-text" id="questionText"></div>
+  <div id="optionsList"></div>
+  <div class="nav-row">
+    <button class="btn-back" onclick="prevQuestion()">← Voltar</button>
+    <button class="btn-primary" id="btnNext" onclick="nextQuestion()" disabled>Avançar →</button>
+  </div>
+</div>
+
+<!-- RESULTADO -->
+<div class="screen" id="screen-results">
+  <h2 class="section-title">Resultado do Diagnóstico</h2>
+  <p class="text-light" style="margin-bottom:24px; font-size:20px;">Veja como o seu tempo está distribuído entre as três esferas da Tríade do Tempo.</p>
+  <div class="spheres-row" id="spheresRow"></div>
+  <div id="resultsCards"></div>
+  <button class="btn-primary" id="btnDownload" onclick="generatePDF()" style="width:100%; justify-content:center; margin-bottom:12px; margin-top:8px;">Baixar resultado em PDF</button>
+  <button class="btn-restart" onclick="restartTest()">Refazer o teste</button>
+</div>
+
+<script>
+const SCALE_OPTIONS = [
+  {value:1, label:'Nunca'},
+  {value:2, label:'Raramente'},
+  {value:3, label:'Às vezes'},
+  {value:4, label:'Quase sempre'},
+  {value:5, label:'Sempre'}
+];
+
+const QUESTIONS = [
+  {id:1, block:'A', text:'Costumo ir a lugares, eventos, festas ou cursos para agradar minha liderança, amigos ou família, mesmo que eu não esteja com vontade de ir.'},
+  {id:2, block:'C', text:'Tenho dificuldades para realizar tudo o que me proponho a fazer no dia e constantemente trabalho além do horário ou levo trabalho para casa.'},
+  {id:3, block:'A', text:'Quando recebo um novo e-mail, mensagem de Whatsapp ou Teams, costumo interromper o que estou fazendo para dar uma olhadinha e checar do que se trata.'},
+  {id:4, block:'B', text:'Costumo definir uma lista de prioridades para o meu dia, e respeitá-la, sem perder o foco nem me distrair com outros assuntos.'},
+  {id:5, block:'C', text:'Meu dia é repleto de situações inesperadas.'},
+  {id:6, block:'A', text:'Se for para aumentar meus rendimentos ou obter uma promoção, eu assumo compromissos ou aceito novas responsabilidades, mesmo que eu não goste muito dessas atividades.'},
+  {id:7, block:'B', text:'Separo algum tempo para dedicar a mim mesma(o), e nele posso fazer o que quiser.'},
+  {id:8, block:'C', text:'Costumo deixar para fazer relatórios, declaração de imposto de renda, compras de Natal e de presentes de aniversários, estudar para provas e outras tarefas perto do prazo de entrega.'},
+  {id:9, block:'A', text:'Passo boa parte do meu dia lendo e respondendo e-mails, mensagens do Whatsapp e Teams e ajudando pessoas colegas a resolverem problemas.'},
+  {id:10, block:'B', text:'Faço um planejamento por escrito de tudo o que preciso fazer durante minha semana.'},
+  {id:11, block:'B', text:'Posso afirmar que estou conseguindo realizar muito do que gostaria em minha vida e que tenho a sensação de que o tempo está passando na velocidade correta.'},
+  {id:12, block:'A', text:'É comum participar de reuniões onde os objetivos não são claros, ou que ao final me pergunto: "O que eu estou fazendo aqui?".'},
+  {id:13, block:'C', text:'Consigo melhores resultados e me sinto mais produtiva(o) quando trabalho sob pressão ou com prazos apertados.'},
+  {id:14, block:'B', text:'Quando quero conquistar algo, escrevo esse objetivo por escrito com tarefas, prazos e faço monitoramento dos resultados.'},
+  {id:15, block:'A', text:'Recebo e leio muitos e-mails, mensagens do Whatsapp e Teams desnecessários, como piadas, correntes, propagandas, apresentações com mensagens diversas, etc.'},
+  {id:16, block:'C', text:'Nestes últimos meses, não tenho conseguido entregar minhas tarefas com pontualidade, tenho me atrasado para compromissos, e até reuniões.'},
+  {id:17, block:'B', text:'Realizo minhas metas pessoais, ainda que não consiga terminar todo o trabalho daquele dia.'},
+  {id:18, block:'C', text:'É comum reduzir o meu horário de almoço ou comer enquanto trabalho porque preciso concluir uma tarefa ou projeto.'}
+];
+
+const ESFERAS = {
+  A: {
+    name:'Esfera do Circunstancial',
+    color:'#0075D9',
+    desc:'Boa parte do seu tempo é direcionada por fatores externos: expectativas de outras pessoas, compromissos sociais e distrações do dia a dia. Isso pode te afastar das suas próprias prioridades sem que você perceba.'
+  },
+  B: {
+    name:'Esfera do Importante',
+    color:'#6FA82E',
+    desc:'Você direciona seu tempo para o que realmente importa: planejamento, prioridades claras e foco em resultados de longo prazo marcam a sua forma de lidar com o tempo.'
+  },
+  C: {
+    name:'Esfera do Urgente',
+    color:'#EF3E4A',
+    desc:'Sua rotina tende a ser tomada por prazos apertados, imprevistos e demandas que chegam sem aviso. Isso pode gerar uma sensação constante de correria e cansaço.'
+  }
+};
+
+let currentIndex = 0;
+const answers = {};
+
+function goToScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function startTest(){
+  currentIndex = 0;
+  document.getElementById('progressBarWrap').style.display = 'block';
+  renderQuestion();
+  goToScreen('screen-question');
+}
+
+function renderQuestion(){
+  const q = QUESTIONS[currentIndex];
+  document.getElementById('questionLabel').textContent = `Pergunta ${currentIndex+1} de ${QUESTIONS.length}`;
+  document.getElementById('questionText').textContent = q.text;
+
+  const list = document.getElementById('optionsList');
+  list.innerHTML = '';
+  SCALE_OPTIONS.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'option-item' + (answers[q.id] === opt.value ? ' selected' : '');
+    btn.innerHTML = `<span class="option-radio"></span><span>${opt.label}</span>`;
+    btn.onclick = () => selectAnswer(q.id, opt.value);
+    list.appendChild(btn);
+  });
+
+  document.getElementById('btnNext').disabled = answers[q.id] === undefined;
+  const pct = (currentIndex / QUESTIONS.length) * 100;
+  document.getElementById('progressBarFill').style.width = pct + '%';
+  window.scrollTo(0,0);
+}
+
+function selectAnswer(qid, value){
+  answers[qid] = value;
+  renderQuestion();
+}
+
+function nextQuestion(){
+  if(currentIndex < QUESTIONS.length - 1){
+    currentIndex++;
+    renderQuestion();
+  } else {
+    showResults();
+  }
+}
+
+function prevQuestion(){
+  if(currentIndex > 0){
+    currentIndex--;
+    renderQuestion();
+  } else {
+    document.getElementById('progressBarWrap').style.display = 'none';
+    goToScreen('screen-instructions');
+  }
+}
+
+function computeResults(){
+  let totalA = 0, totalB = 0, totalC = 0;
+  QUESTIONS.forEach(q => {
+    const val = answers[q.id] || 0;
+    if(q.block === 'A') totalA += val;
+    if(q.block === 'B') totalB += val;
+    if(q.block === 'C') totalC += val;
+  });
+  const totalGeral = totalA + totalB + totalC;
+  const pctA = totalGeral > 0 ? Math.round((totalA * 100) / totalGeral) : 0;
+  const pctB = totalGeral > 0 ? Math.round((totalB * 100) / totalGeral) : 0;
+  const pctC = totalGeral > 0 ? Math.round((totalC * 100) / totalGeral) : 0;
+
+  return [
+    {block:'A', pct:pctA, ...ESFERAS.A},
+    {block:'B', pct:pctB, ...ESFERAS.B},
+    {block:'C', pct:pctC, ...ESFERAS.C}
+  ].sort((a,b) => b.pct - a.pct);
+}
+
+function showResults(){
+  document.getElementById('progressBarWrap').style.display = 'none';
+  const ranked = computeResults();
+
+  // Esferas (círculos), ordenadas da maior porcentagem para a menor
+  const isSmallScreen = window.innerWidth < 480;
+  const minD = isSmallScreen ? 54 : 80;
+  const maxD = isSmallScreen ? 118 : 210;
+  const spheresRow = document.getElementById('spheresRow');
+  spheresRow.innerHTML = '';
+  ranked.forEach(r => {
+    const diameter = Math.round(minD + (maxD - minD) * Math.sqrt(r.pct / 100));
+    const fontSize = Math.max(14, Math.round(diameter * 0.16));
+    const item = document.createElement('div');
+    item.className = 'sphere-item';
+    item.innerHTML = `
+      <div class="sphere-circle" style="width:${diameter}px; height:${diameter}px; background:${r.color}; font-size:${fontSize}px;">${r.pct}%</div>
+      <div class="sphere-label" style="color:${r.color};">${r.name.replace('Esfera do ','').replace('Esfera ','')}</div>
+    `;
+    spheresRow.appendChild(item);
+  });
+
+  const container = document.getElementById('resultsCards');
+  container.innerHTML = '';
+
+  ranked.forEach((r, idx) => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.style.borderLeftColor = r.color;
+    if(idx === 0){
+      card.style.background = r.color + '14';
+      card.style.borderColor = r.color;
+    }
+    card.innerHTML = `
+      <div class="result-header">
+        <div class="result-name" style="color:${r.color}; margin-bottom:0;">${r.name}</div>
+        <span class="result-pct" style="color:${r.color};">${r.pct}%</span>
+      </div>
+      <p class="result-desc">${r.desc}</p>
+    `;
+    container.appendChild(card);
+  });
+
+  goToScreen('screen-results');
+}
+
+function restartTest(){
+  Object.keys(answers).forEach(k => delete answers[k]);
+  currentIndex = 0;
+  goToScreen('screen-cover');
+}
+
+function loadImageAsDataURL(url){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      try {
+        resolve({dataUrl: canvas.toDataURL('image/png'), w: img.naturalWidth, h: img.naturalHeight});
+      } catch(e){
+        reject(e);
+      }
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+async function generatePDF(){
+  const btn = document.getElementById('btnDownload');
+  btn.textContent = '⏳ Gerando PDF...';
+  btn.disabled = true;
+
+  let logo = null;
+  try {
+    logo = await loadImageAsDataURL('https://i.imgur.com/fUPVKmL.png');
+  } catch(e){
+    logo = null;
+  }
+
+  setTimeout(() => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({unit:'mm', format:'a4'});
+      const ranked = computeResults();
+      const pageW = 210;
+      const marginX = 15;
+      let y = 0;
+
+      function drawHeader(){
+        doc.setFillColor(0, 123, 234);
+        doc.rect(0, 0, pageW, 28, 'F');
+        doc.setTextColor(255,255,255);
+        doc.setFont('helvetica','bold');
+        doc.setFontSize(18);
+        doc.text('Tríade do Tempo', marginX, 17);
+        if(logo){
+          const logoH = 10;
+          const logoW = logoH * (logo.w / logo.h);
+          doc.addImage(logo.dataUrl, 'PNG', pageW - marginX - logoW, 9, logoW, logoH);
+        }
+        y = 40;
+      }
+
+      function drawFooter(pageNum, totalPages){
+        doc.setTextColor(33,0,0);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica','normal');
+        doc.text('Crescimentum | crescimentum.com.br', marginX, 290);
+        doc.text(`Página ${pageNum} / ${totalPages}`, pageW - marginX, 290, {align:'right'});
+      }
+
+      drawHeader();
+      doc.setTextColor(33,0,0);
+      doc.setFontSize(10);
+      doc.setFont('helvetica','normal');
+      const introText = 'Veja como o seu tempo está distribuído entre as três esferas da Tríade do Tempo.';
+      doc.text(introText, marginX, y, {maxWidth: pageW - marginX*2});
+      y += 12;
+
+
+
+      function hexToRgb(hex){
+        const v = hex.replace('#','');
+        return [parseInt(v.substring(0,2),16), parseInt(v.substring(2,4),16), parseInt(v.substring(4,6),16)];
+      }
+
+      ranked.forEach((r, idx) => {
+        const cardH = 34;
+        if(y + cardH > 272){
+          doc.addPage();
+          y = 20;
+        }
+        const isFirst = idx === 0;
+        const [cr, cg, cb] = hexToRgb(r.color);
+
+        doc.setFillColor(isFirst ? 250 : 250, isFirst ? 250 : 250, isFirst ? 250 : 250);
+        doc.setDrawColor(cr, cg, cb);
+        doc.setLineWidth(0.8);
+        doc.roundedRect(marginX, y, pageW - marginX*2, cardH, 2, 2, 'FD');
+
+        doc.setTextColor(cr, cg, cb);
+        doc.setFontSize(11);
+        doc.setFont('helvetica','bold');
+        doc.text(r.name, marginX + 6, y + 10);
+        doc.text(`${r.pct}%`, pageW - marginX - 6, y + 10, {align:'right'});
+
+        // barra
+        const barY = y + 19;
+        const barW = pageW - marginX*2 - 12;
+        doc.setFillColor(230,230,230);
+        doc.rect(marginX + 6, barY, barW, 2.5, 'F');
+        doc.setFillColor(cr, cg, cb);
+        doc.rect(marginX + 6, barY, barW * (r.pct/100), 2.5, 'F');
+
+        doc.setTextColor(33,0,0);
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica','normal');
+        const descLines = doc.splitTextToSize(r.desc, barW);
+        doc.text(descLines, marginX + 6, y + 27);
+
+        y += cardH + 6;
+      });
+
+      const totalPages = doc.internal.getNumberOfPages();
+      for(let p = 1; p <= totalPages; p++){
+        doc.setPage(p);
+        drawFooter(p, totalPages);
+      }
+
+      doc.save('Tríade do Tempo - Resultado.pdf');
+    } catch(e){
+      console.error(e);
+      alert('Ocorreu um erro ao gerar o PDF. Tente novamente.');
+    } finally {
+      btn.textContent = 'Baixar resultado em PDF';
+      btn.disabled = false;
+    }
+  }, 50);
+}
+</script>
+
+</body>
+</html>
